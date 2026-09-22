@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "인하대 캠퍼스 네비게이션",
+    "slug": "inha-campus-nav",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#0b5fff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "현재 위치에서 목적지까지 경로 안내를 위해 위치 권한이 필요합니다."
+      }
+    },
+    "android": {
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
+    },
+    "plugins": [
+      "expo-status-bar"
+    ]
+  }
+}
