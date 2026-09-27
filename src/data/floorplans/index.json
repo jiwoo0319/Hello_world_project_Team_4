@@ -1,0 +1,27 @@
+[
+  {
+    "id": "b1",
+    "label": "지하1층",
+    "image": "5호관_B1.png"
+  },
+  {
+    "id": "1f",
+    "label": "1층",
+    "image": "5호관_1F.png"
+  },
+  {
+    "id": "2f",
+    "label": "2층",
+    "image": "5호관_2F.png"
+  },
+  {
+    "id": "3f",
+    "label": "3층",
+    "image": "5호관_3F.png"
+  },
+  {
+    "id": "4f",
+    "label": "4층",
+    "image": "5호관_4F.png"
+  }
+]

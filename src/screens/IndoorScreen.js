@@ -1,9 +1,39 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
+import React, { useMemo, useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  TextInput,
+  FlatList,
+} from "react-native";
+import FloorPlanView from "../components/FloorPlanView";
+import { FLOORS } from "../data/floorplans";
 
-export default function IndoorScreen({ building, onBack }) {
-  const [selectedFloor, setSelectedFloor] = useState(building.floors[0]);
+export default function IndoorScreen({ onBack }) {
+  const [selectedFloor, setSelectedFloor] = useState(FLOORS[1]); // 기본값: 1층
   const [selectedRoom, setSelectedRoom] = useState(null);
+  const [query, setQuery] = useState("");
+
+  const matches = useMemo(() => {
+    if (!query.trim()) return [];
+    const q = query.trim().toLowerCase();
+    return selectedFloor.rooms
+      .filter((r) => r.number.toLowerCase().includes(q))
+      .slice(0, 8);
+  }, [query, selectedFloor]);
+
+  const selectFloor = (floor) => {
+    setSelectedFloor(floor);
+    setSelectedRoom(null);
+    setQuery("");
+  };
+
+  const selectRoom = (room) => {
+    setSelectedRoom(room);
+    setQuery("");
+  };
 
   return (
     <View style={styles.container}>
@@ -11,22 +41,19 @@ export default function IndoorScreen({ building, onBack }) {
         <TouchableOpacity onPress={onBack}>
           <Text style={styles.backText}>← 지도로</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{building.name} 내부 안내</Text>
+        <Text style={styles.headerTitle}>5호관 내부 안내</Text>
         <View style={{ width: 60 }} />
       </View>
 
       <View style={styles.floorTabs}>
-        {building.floors.map((floor) => (
+        {FLOORS.map((floor) => (
           <TouchableOpacity
             key={floor.id}
             style={[
               styles.floorTab,
               selectedFloor.id === floor.id && styles.floorTabActive,
             ]}
-            onPress={() => {
-              setSelectedFloor(floor);
-              setSelectedRoom(null);
-            }}
+            onPress={() => selectFloor(floor)}
           >
             <Text
               style={[
@@ -40,44 +67,59 @@ export default function IndoorScreen({ building, onBack }) {
         ))}
       </View>
 
-      <ScrollView style={styles.content}>
-        <Text style={styles.sectionLabel}>{selectedFloor.label} 목적지 선택</Text>
-        <View style={styles.roomGrid}>
-          {selectedFloor.rooms.map((room) => (
-            <TouchableOpacity
-              key={room.id}
-              style={[
-                styles.roomChip,
-                selectedRoom?.id === room.id && styles.roomChipActive,
-              ]}
-              onPress={() => setSelectedRoom(room)}
-            >
-              <Text
-                style={[
-                  styles.roomChipText,
-                  selectedRoom?.id === room.id && styles.roomChipTextActive,
-                ]}
+      <View style={styles.searchBox}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="호실 번호로 검색 (예: 417A)"
+          value={query}
+          onChangeText={setQuery}
+          autoCapitalize="characters"
+        />
+        {matches.length > 0 && (
+          <FlatList
+            style={styles.searchResults}
+            data={matches}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.searchResultRow}
+                onPress={() => selectRoom(item)}
               >
-                {room.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {selectedRoom && (
-          <View style={styles.stepsBox}>
-            <Text style={styles.stepsTitle}>{selectedRoom.name} 가는 길</Text>
-            {selectedRoom.steps.map((step, idx) => (
-              <View key={idx} style={styles.stepRow}>
-                <View style={styles.stepBadge}>
-                  <Text style={styles.stepBadgeText}>{idx + 1}</Text>
-                </View>
-                <Text style={styles.stepText}>{step}</Text>
-              </View>
-            ))}
-          </View>
+                <Text style={styles.searchResultText}>
+                  {item.zone} {item.number}
+                </Text>
+              </TouchableOpacity>
+            )}
+          />
         )}
+      </View>
+
+      <ScrollView
+        style={styles.mapScroll}
+        maximumZoomScale={4}
+        minimumZoomScale={1}
+        pinchGestureEnabled
+        showsHorizontalScrollIndicator={false}
+        showsVerticalScrollIndicator={false}
+      >
+        <FloorPlanView
+          floor={selectedFloor}
+          selectedRoomId={selectedRoom?.id}
+          onSelectRoom={selectRoom}
+        />
       </ScrollView>
+
+      {selectedRoom && (
+        <View style={styles.infoPanel}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.infoZone}>{selectedRoom.zone}</Text>
+            <Text style={styles.infoNumber}>{selectedRoom.label}호</Text>
+          </View>
+          <TouchableOpacity onPress={() => setSelectedRoom(null)}>
+            <Text style={styles.infoClose}>닫기</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
@@ -104,45 +146,58 @@ const styles = StyleSheet.create({
   },
   floorTab: {
     paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     borderRadius: 20,
     backgroundColor: "#f1f3f5",
   },
   floorTabActive: { backgroundColor: "#0b5fff" },
   floorTabText: { color: "#333", fontWeight: "600" },
   floorTabTextActive: { color: "#fff" },
-  content: { flex: 1, paddingHorizontal: 16 },
-  sectionLabel: { fontSize: 14, color: "#666", marginTop: 8, marginBottom: 8 },
-  roomGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  roomChip: {
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 10,
+  searchBox: {
+    paddingHorizontal: 16,
+    marginBottom: 4,
+    zIndex: 10,
+  },
+  searchInput: {
     borderWidth: 1,
     borderColor: "#ddd",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 14,
   },
-  roomChipActive: { borderColor: "#0b5fff", backgroundColor: "#eaf1ff" },
-  roomChipText: { color: "#333", fontWeight: "600" },
-  roomChipTextActive: { color: "#0b5fff" },
-  stepsBox: {
-    marginTop: 20,
-    marginBottom: 24,
-    backgroundColor: "#f8f9fb",
-    borderRadius: 14,
-    padding: 16,
+  searchResults: {
+    position: "absolute",
+    top: 44,
+    left: 16,
+    right: 16,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#eee",
+    borderRadius: 10,
+    maxHeight: 220,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
   },
-  stepsTitle: { fontSize: 15, fontWeight: "700", marginBottom: 12, color: "#111" },
-  stepRow: { flexDirection: "row", alignItems: "flex-start", marginBottom: 10 },
-  stepBadge: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: "#0b5fff",
+  searchResultRow: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f2f2f2",
+  },
+  searchResultText: { fontSize: 14, color: "#222" },
+  mapScroll: { flex: 1, backgroundColor: "#f3f5f1" },
+  infoPanel: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    marginRight: 10,
-    marginTop: 1,
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
+    backgroundColor: "#fff",
   },
-  stepBadgeText: { color: "#fff", fontSize: 12, fontWeight: "700" },
-  stepText: { flex: 1, fontSize: 14, color: "#333", lineHeight: 20 },
+  infoZone: { fontSize: 13, color: "#666" },
+  infoNumber: { fontSize: 20, fontWeight: "800", color: "#0b5fff", marginTop: 2 },
+  infoClose: { color: "#0b5fff", fontWeight: "600", fontSize: 14 },
 });

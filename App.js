@@ -4,18 +4,15 @@ import MapScreen from "./src/screens/MapScreen";
 import IndoorScreen from "./src/screens/IndoorScreen";
 
 export default function App() {
-  const [arrivedBuilding, setArrivedBuilding] = useState(null);
+  const [showIndoor, setShowIndoor] = useState(false);
 
   return (
     <>
       <StatusBar style="dark" />
-      {arrivedBuilding ? (
-        <IndoorScreen
-          building={arrivedBuilding}
-          onBack={() => setArrivedBuilding(null)}
-        />
+      {showIndoor ? (
+        <IndoorScreen onBack={() => setShowIndoor(false)} />
       ) : (
-        <MapScreen onArrive={(building) => setArrivedBuilding(building)} />
+        <MapScreen onArrive={() => setShowIndoor(true)} />
       )}
     </>
   );
