@@ -248,6 +248,14 @@ export default function IndoorScreen({ onBack }) {
                 </View>
               </>
             )}
+            <View style={styles.redoRow}>
+              <TouchableOpacity style={styles.redoButton} onPress={() => setPhase(PHASE_DEST)}>
+                <Text style={styles.redoButtonText}>목적지만 다시 선택</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.redoButton} onPress={reset}>
+                <Text style={styles.redoButtonText}>출발지부터 다시 선택</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </>
       )}
@@ -346,4 +354,13 @@ const styles = StyleSheet.create({
   },
   routeNavButtonDisabled: { backgroundColor: "#c7d6f5" },
   routeNavButtonText: { color: "#fff", fontWeight: "700" },
+  redoRow: { flexDirection: "row", gap: 8, marginTop: 10 },
+  redoButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: "#f1f3f5",
+    alignItems: "center",
+  },
+  redoButtonText: { color: "#e0332f", fontWeight: "700", fontSize: 13 },
 });
