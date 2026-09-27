@@ -10,10 +10,12 @@ import {
 } from "react-native";
 import FloorPlanView from "../components/FloorPlanView";
 import { FLOORS } from "../data/floorplans";
+import { buildFloorGraph, shortestPath } from "../lib/indoorPath";
 
 export default function IndoorScreen({ onBack }) {
   const [selectedFloor, setSelectedFloor] = useState(FLOORS[1]); // 기본값: 1층
   const [selectedRoom, setSelectedRoom] = useState(null);
+  const [selectedEntrance, setSelectedEntrance] = useState(null);
   const [query, setQuery] = useState("");
 
   const matches = useMemo(() => {
@@ -24,15 +26,26 @@ export default function IndoorScreen({ onBack }) {
       .slice(0, 8);
   }, [query, selectedFloor]);
 
+  const route = useMemo(() => {
+    if (!selectedRoom || !selectedEntrance) return null;
+    const graph = buildFloorGraph(selectedFloor);
+    return shortestPath(graph, selectedEntrance.id, selectedRoom.id);
+  }, [selectedFloor, selectedRoom, selectedEntrance]);
+
   const selectFloor = (floor) => {
     setSelectedFloor(floor);
     setSelectedRoom(null);
+    setSelectedEntrance(null);
     setQuery("");
   };
 
   const selectRoom = (room) => {
     setSelectedRoom(room);
     setQuery("");
+  };
+
+  const selectEntrance = (entrance) => {
+    setSelectedEntrance((prev) => (prev?.id === entrance.id ? null : entrance));
   };
 
   return (
@@ -106,16 +119,37 @@ export default function IndoorScreen({ onBack }) {
           floor={selectedFloor}
           selectedRoomId={selectedRoom?.id}
           onSelectRoom={selectRoom}
+          selectedEntranceId={selectedEntrance?.id}
+          onSelectEntrance={selectedRoom ? selectEntrance : undefined}
+          path={route?.points}
         />
       </ScrollView>
+
+      {selectedRoom && !selectedEntrance && (
+        <View style={styles.hintBar}>
+          <Text style={styles.hintText}>
+            도면 위 노란 점(문) 중 출발할 출입문을 눌러주세요
+          </Text>
+        </View>
+      )}
 
       {selectedRoom && (
         <View style={styles.infoPanel}>
           <View style={{ flex: 1 }}>
             <Text style={styles.infoZone}>{selectedRoom.zone}</Text>
             <Text style={styles.infoNumber}>{selectedRoom.label}호</Text>
+            {selectedEntrance && (
+              <Text style={styles.infoRoute}>
+                {selectedEntrance.label}에서 출발
+              </Text>
+            )}
           </View>
-          <TouchableOpacity onPress={() => setSelectedRoom(null)}>
+          <TouchableOpacity
+            onPress={() => {
+              setSelectedRoom(null);
+              setSelectedEntrance(null);
+            }}
+          >
             <Text style={styles.infoClose}>닫기</Text>
           </TouchableOpacity>
         </View>
@@ -199,5 +233,14 @@ const styles = StyleSheet.create({
   },
   infoZone: { fontSize: 13, color: "#666" },
   infoNumber: { fontSize: 20, fontWeight: "800", color: "#0b5fff", marginTop: 2 },
+  infoRoute: { fontSize: 13, color: "#e0332f", marginTop: 4, fontWeight: "600" },
   infoClose: { color: "#0b5fff", fontWeight: "600", fontSize: 14 },
+  hintBar: {
+    backgroundColor: "#fff8e6",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#f0e0a0",
+  },
+  hintText: { fontSize: 13, color: "#8a6d1a", textAlign: "center" },
 });
