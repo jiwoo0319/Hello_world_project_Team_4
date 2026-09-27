@@ -23,6 +23,42 @@ function dist(a, b) {
 // 옆 관을 거쳐 돌아가야 한다. 그래서 인접한 관끼리만 최단 경로로 잇는다.
 const ZONE_RING_ORDER = ["5북관", "5동관", "5남관", "5서관"];
 
+// 각 관은 실제로 복도 하나를 사이에 두고 방이 두 줄(또는 두 열)로 늘어선 형태다.
+// 방 중심점끼리 바로 이으면 선이 옆방을 가로질러 지나가 버리므로, 대신 그 관의
+// "복도 중심선" 위로 투영한 점(도킹 포인트)끼리 잇는다. 북/남관은 복도가 가로로
+// 길어서 y좌표를 중심선에 맞추고, 동/서관은 복도가 세로로 길어서 x좌표를 맞춘다.
+const ZONE_ORIENTATION = {
+  "5북관": "horizontal",
+  "5남관": "horizontal",
+  "5동관": "vertical",
+  "5서관": "vertical",
+};
+
+function guessOrientation(rooms) {
+  const xs = rooms.map((r) => r.x + r.width / 2);
+  const ys = rooms.map((r) => r.y + r.height / 2);
+  const xSpread = Math.max(...xs) - Math.min(...xs);
+  const ySpread = Math.max(...ys) - Math.min(...ys);
+  return xSpread >= ySpread ? "horizontal" : "vertical";
+}
+
+function computeZoneCorridor(rooms) {
+  const orientation = ZONE_ORIENTATION[rooms[0]?.zone] || guessOrientation(rooms);
+  if (orientation === "horizontal") {
+    const centersY = rooms.map((r) => r.y + r.height / 2);
+    return { orientation, value: (Math.min(...centersY) + Math.max(...centersY)) / 2 };
+  }
+  const centersX = rooms.map((r) => r.x + r.width / 2);
+  return { orientation, value: (Math.min(...centersX) + Math.max(...centersX)) / 2 };
+}
+
+function dockPoint(room, corridor) {
+  const cx = room.x + room.width / 2;
+  const cy = room.y + room.height / 2;
+  if (!corridor) return { x: cx, y: cy };
+  return corridor.orientation === "horizontal" ? { x: cx, y: corridor.value } : { x: corridor.value, y: cy };
+}
+
 function adjacentZonePairs(zoneNames) {
   const present = ZONE_RING_ORDER.filter((z) => zoneNames.includes(z));
   const pairs = new Set();
@@ -58,16 +94,26 @@ function addFloorSubgraph(nodes, adj, floor, prefix) {
     adj.get(b).push({ to: a, w });
   };
 
+  // 관별로 복도 중심선을 먼저 계산해서, 방 중심이 아니라 그 중심선 위의
+  // 도킹 포인트를 그래프 좌표로 쓴다.
+  const zoneRoomLists = new Map();
+  for (const room of floor.rooms) {
+    if (!zoneRoomLists.has(room.zone)) zoneRoomLists.set(room.zone, []);
+    zoneRoomLists.get(room.zone).push(room);
+  }
+  const zoneCorridors = new Map();
+  for (const [zone, rooms] of zoneRoomLists) zoneCorridors.set(zone, computeZoneCorridor(rooms));
+
   const roomNodeId = new Map(); // room.id -> graph id
   for (const room of floor.rooms) {
-    roomNodeId.set(room.id, addNode(room.id, room.x + room.width / 2, room.y + room.height / 2));
+    const p = dockPoint(room, zoneCorridors.get(room.zone));
+    roomNodeId.set(room.id, addNode(room.id, p.x, p.y));
   }
 
   const K_NEAREST = 3;
   const zoneGroups = new Map();
-  for (const room of floor.rooms) {
-    if (!zoneGroups.has(room.zone)) zoneGroups.set(room.zone, []);
-    zoneGroups.get(room.zone).push(room.id);
+  for (const [zone, rooms] of zoneRoomLists) {
+    zoneGroups.set(zone, rooms.map((r) => r.id));
   }
   for (const ids of zoneGroups.values()) {
     for (const id of ids) {

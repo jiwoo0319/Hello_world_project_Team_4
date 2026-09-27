@@ -121,6 +121,18 @@ export default function IndoorScreen({ onBack }) {
     return buildStepTexts(currentSegment, currentSegmentFloor, { startText, endText });
   }, [currentSegment, currentSegmentFloor, routeStep, segments, startEntrance, destRoom]);
 
+  // 경로 노드는 복도 중심선 위 좌표라 목적지 방 바로 앞에서 끝난다.
+  // 마지막 구간에서는 실제 방 중심까지 한 칸 더 이어서 방 안으로 들어가는 것처럼 보이게 한다.
+  const displayPathPoints = useMemo(() => {
+    if (!currentSegment || currentSegment.points.length < 2) return null;
+    const isLast = routeStep === segments.length - 1;
+    if (isLast && destRoom) {
+      const roomCenter = { x: destRoom.x + destRoom.width / 2, y: destRoom.y + destRoom.height / 2 };
+      return [...currentSegment.points, roomCenter];
+    }
+    return currentSegment.points;
+  }, [currentSegment, routeStep, segments, destRoom]);
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -234,10 +246,7 @@ export default function IndoorScreen({ onBack }) {
             showsVerticalScrollIndicator={false}
           >
             {currentSegmentFloor && (
-              <FloorPlanView
-                floor={currentSegmentFloor}
-                path={currentSegment.points.length > 1 ? currentSegment.points : null}
-              />
+              <FloorPlanView floor={currentSegmentFloor} path={displayPathPoints} />
             )}
           </ScrollView>
 
