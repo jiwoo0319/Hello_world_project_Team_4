@@ -23,11 +23,25 @@
     "android": {
       "permissions": [
         "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION"
       ]
     },
     "plugins": [
       "expo-status-bar"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "27c25721-7ada-4092-b90a-13e5f54d3e70"
+      }
+    },
+    "owner": "chlwldn",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/27c25721-7ada-4092-b90a-13e5f54d3e70"
+    }
   }
 }
