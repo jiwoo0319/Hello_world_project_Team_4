@@ -5,6 +5,7 @@ Expo 기반 React Native 앱. 실외는 실시간 도보 경로 안내, 실내�
 ## 실행 방법
 
 ```bash
+*Expo Go 최신버전 필요
 npm install
 npx expo start
 ```
