@@ -17,6 +17,30 @@ function dist(a, b) {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
+// 건물은 가운데 안뜰(중정)을 감싸는 ㅁ자 형태라, 북/동/남/서 네 관이 이 순서로
+// 고리 모양으로 붙어 있다. 1층은 안뜰이 바깥 지상으로 뚫려 있어 가로질러 갈 수
+// 있지만, 다른 층은 안뜰 위에 바닥이 없어(중정) 마주보는 관끼리 직선으로 못 가고
+// 옆 관을 거쳐 돌아가야 한다. 그래서 인접한 관끼리만 최단 경로로 잇는다.
+const ZONE_RING_ORDER = ["5북관", "5동관", "5남관", "5서관"];
+
+function adjacentZonePairs(zoneNames) {
+  const present = ZONE_RING_ORDER.filter((z) => zoneNames.includes(z));
+  const pairs = new Set();
+  const isClosedRing = present.length === ZONE_RING_ORDER.length; // 네 관이 다 있어야 고리가 닫힌다
+  for (let i = 0; i < present.length; i++) {
+    const j = i + 1;
+    if (j >= present.length) {
+      if (!isClosedRing) continue; // 관이 하나라도 빠지면(B1처럼) 끝과 끝은 안 이어짐
+      pairs.add(`${present[i]}|${present[0]}`);
+      pairs.add(`${present[0]}|${present[i]}`);
+    } else {
+      pairs.add(`${present[i]}|${present[j]}`);
+      pairs.add(`${present[j]}|${present[i]}`);
+    }
+  }
+  return pairs;
+}
+
 function addFloorSubgraph(nodes, adj, floor, prefix) {
   const addNode = (localId, x, y) => {
     const id = prefix + localId;
@@ -57,10 +81,13 @@ function addFloorSubgraph(nodes, adj, floor, prefix) {
     }
   }
 
-  // 관과 관 사이는 가장 가까운 방 쌍끼리 이어서 전체를 연결
+  // 관과 관 사이는 가장 가까운 방 쌍끼리 이어서 연결한다. 1층은 안뜰을 가로질러
+  // 갈 수 있으니 모든 관 쌍을 잇고, 그 외 층은 실제로 붙어 있는(인접한) 관끼리만 잇는다.
   const zoneNames = [...zoneGroups.keys()];
+  const allowedPairs = floor.id === "1f" ? null : adjacentZonePairs(zoneNames);
   for (let i = 0; i < zoneNames.length; i++) {
     for (let j = i + 1; j < zoneNames.length; j++) {
+      if (allowedPairs && !allowedPairs.has(`${zoneNames[i]}|${zoneNames[j]}`)) continue;
       let best = null;
       for (const a of zoneGroups.get(zoneNames[i])) {
         for (const b of zoneGroups.get(zoneNames[j])) {
