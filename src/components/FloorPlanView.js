@@ -46,12 +46,14 @@ export default function FloorPlanView({
       {onSelectEntrance &&
         (entrances || []).map((entrance) => {
           const isSelected = entrance.id === selectedEntranceId;
+          const isStair = entrance.type === "stair";
           return (
             <TouchableOpacity
               key={entrance.id}
               onPress={() => onSelectEntrance(entrance)}
               style={[
                 styles.entrance,
+                isStair && styles.entranceStair,
                 {
                   left: `${(entrance.x / viewBoxWidth) * 100}%`,
                   top: `${(entrance.y / viewBoxHeight) * 100}%`,
@@ -60,7 +62,9 @@ export default function FloorPlanView({
               ]}
               activeOpacity={0.7}
             >
-              <Text style={styles.entranceText}>{isSelected ? "출발" : "문"}</Text>
+              <Text style={styles.entranceText}>
+                {isSelected ? "출발" : isStair ? "계단" : "출입문"}
+              </Text>
             </TouchableOpacity>
           );
         })}
@@ -87,16 +91,20 @@ const styles = StyleSheet.create({
   },
   entrance: {
     position: "absolute",
-    width: 30,
-    height: 30,
-    marginLeft: -15,
-    marginTop: -15,
-    borderRadius: 15,
+    minWidth: 44,
+    height: 26,
+    marginLeft: -22,
+    marginTop: -13,
+    borderRadius: 13,
+    paddingHorizontal: 6,
     backgroundColor: "#ffb020",
     borderWidth: 2,
     borderColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
+  },
+  entranceStair: {
+    backgroundColor: "#6b7280",
   },
   entranceSelected: {
     backgroundColor: "#0b5fff",

@@ -98,9 +98,20 @@ function nearestZone(rooms, x, y) {
     const totalPerZone = new Map();
     for (const e of entrances) totalPerZone.set(e.zone, (totalPerZone.get(e.zone) || 0) + 1);
 
+    // 1층의 EXIT는 건물 밖으로 나가는 실제 출입문, 나머지 층의 EXIT는 다른 층으로
+    // 이동하는 계단이다(피난계획도에서 지상층 EXIT=옥외 출입구, 그 외 층 EXIT=계단실).
+    const type = id === "1f" ? "door" : "stair";
     floor.entrances = entrances.map((e, i) => ({
       id: `entrance-${id}-${i}`,
-      label: totalPerZone.get(e.zone) > 1 ? `${e.zone} 출입구 ${e.n}` : `${e.zone} 출입구`,
+      label:
+        type === "door"
+          ? totalPerZone.get(e.zone) > 1
+            ? `${e.zone} 출입구 ${e.n}`
+            : `${e.zone} 출입구`
+          : totalPerZone.get(e.zone) > 1
+            ? `${e.zone} 계단 ${e.n}`
+            : `${e.zone} 계단`,
+      type,
       x: e.x,
       y: e.y,
     }));

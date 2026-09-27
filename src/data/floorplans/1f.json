@@ -1370,66 +1370,77 @@
     {
       "id": "entrance-1f-0",
       "label": "5북관 출입구 1",
+      "type": "door",
       "x": 1906,
       "y": 182
     },
     {
       "id": "entrance-1f-1",
       "label": "5북관 출입구 2",
+      "type": "door",
       "x": 698,
       "y": 196
     },
     {
       "id": "entrance-1f-2",
       "label": "5북관 출입구 3",
+      "type": "door",
       "x": 1739,
       "y": 286
     },
     {
       "id": "entrance-1f-3",
       "label": "5북관 출입구 4",
+      "type": "door",
       "x": 814,
       "y": 300
     },
     {
       "id": "entrance-1f-4",
       "label": "5서관 출입구 1",
+      "type": "door",
       "x": 205,
       "y": 684
     },
     {
       "id": "entrance-1f-5",
       "label": "5동관 출입구 1",
+      "type": "door",
       "x": 1909,
       "y": 817
     },
     {
       "id": "entrance-1f-6",
       "label": "5서관 출입구 2",
+      "type": "door",
       "x": 219,
       "y": 1207
     },
     {
       "id": "entrance-1f-7",
       "label": "5남관 출입구 1",
+      "type": "door",
       "x": 1435,
       "y": 1227
     },
     {
       "id": "entrance-1f-8",
       "label": "5동관 출입구 2",
+      "type": "door",
       "x": 1909,
       "y": 1328
     },
     {
       "id": "entrance-1f-9",
       "label": "5남관 출입구 2",
+      "type": "door",
       "x": 494,
       "y": 1330
     },
     {
       "id": "entrance-1f-10",
       "label": "5남관 출입구 3",
+      "type": "door",
       "x": 1236,
       "y": 1343
     }

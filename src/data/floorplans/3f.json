@@ -1319,61 +1319,71 @@
   "entrances": [
     {
       "id": "entrance-3f-0",
-      "label": "5북관 출입구 1",
+      "label": "5북관 계단 1",
+      "type": "stair",
       "x": 699,
       "y": 182
     },
     {
       "id": "entrance-3f-1",
-      "label": "5북관 출입구 2",
+      "label": "5북관 계단 2",
+      "type": "stair",
       "x": 1237,
       "y": 182
     },
     {
       "id": "entrance-3f-2",
-      "label": "5북관 출입구 3",
+      "label": "5북관 계단 3",
+      "type": "stair",
       "x": 219,
       "y": 283
     },
     {
       "id": "entrance-3f-3",
-      "label": "5북관 출입구 4",
+      "label": "5북관 계단 4",
+      "type": "stair",
       "x": 1806,
       "y": 288
     },
     {
       "id": "entrance-3f-4",
-      "label": "5서관 출입구",
+      "label": "5서관 계단",
+      "type": "stair",
       "x": 219,
       "y": 692
     },
     {
       "id": "entrance-3f-5",
-      "label": "5동관 출입구",
+      "label": "5동관 계단",
+      "type": "stair",
       "x": 1806,
       "y": 771
     },
     {
       "id": "entrance-3f-6",
-      "label": "5남관 출입구 1",
+      "label": "5남관 계단 1",
+      "type": "stair",
       "x": 219,
       "y": 1222
     },
     {
       "id": "entrance-3f-7",
-      "label": "5남관 출입구 2",
+      "label": "5남관 계단 2",
+      "type": "stair",
       "x": 622,
       "y": 1227
     },
     {
       "id": "entrance-3f-8",
-      "label": "5남관 출입구 3",
+      "label": "5남관 계단 3",
+      "type": "stair",
       "x": 1430,
       "y": 1227
     },
     {
       "id": "entrance-3f-9",
-      "label": "5남관 출입구 4",
+      "label": "5남관 계단 4",
+      "type": "stair",
       "x": 1909,
       "y": 1324
     }

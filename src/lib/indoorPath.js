@@ -5,10 +5,13 @@
 // "계단" 노드를 두고 위아래 층의 계단 노드끼리 이어서 하나의 그래프로 합친다.
 export const FLOOR_ORDER = ["b1", "1f", "2f", "3f", "4f"];
 
-// 실제 계단 좌표 데이터가 없어서, 2층 도면에서 확인한 중앙계단 위치를 모든 층에
-// 공통으로 사용한다(모든 층이 같은 뷰박스를 쓰고 있어 근사치로 적용 가능).
-const STAIR_POINT = { x: 1300, y: 1030 };
+// 1층 도면의 EXIT는 건물 밖으로 나가는 실제 출입문(entrance.type === "door")이고,
+// 그 외 층의 EXIT는 다른 층으로 이동하는 계단(entrance.type === "stair")이다.
+// 1층 자체에는 EXIT로 표시된 계단이 없지만(지상층 표시는 옥외 출입문만 따로 그려짐)
+// 실제로는 지하1층·2층과 같은 자리에 계단이 있으므로, 인접 층의 계단 위치를
+// 그대로 가져와 1층에도 가상 계단 노드로 심어 위아래 층과 연결한다.
 const FLOOR_TRANSITION_COST = 500; // 한 층 오르내리는 데 드는 가상 거리
+const STAIR_MERGE_RADIUS = 80; // 이 거리 안이면 위/아래 층에서 온 같은 계단으로 간주
 
 function dist(a, b) {
   return Math.hypot(a.x - b.x, a.y - b.y);
@@ -87,15 +90,7 @@ function addFloorSubgraph(nodes, adj, floor, prefix) {
     if (bestId) addEdge(eid, bestId);
   }
 
-  // 계단 노드: 가장 가까운 방 2개와 연결(층간 이동의 출발/도착점)
-  const stairId = addNode("__stairs__", STAIR_POINT.x, STAIR_POINT.y);
-  const nearestRooms = floor.rooms
-    .map((room) => ({ gid: roomNodeId.get(room.id), w: dist(STAIR_POINT, nodes.get(roomNodeId.get(room.id))) }))
-    .sort((a, b) => a.w - b.w)
-    .slice(0, 2);
-  for (const { gid } of nearestRooms) addEdge(stairId, gid);
-
-  return { roomNodeId, entranceNodeId: (id) => prefix + id, stairId };
+  return { roomNodeId, addNode, addEdge };
 }
 
 export function buildFloorGraph(floor) {
@@ -110,22 +105,65 @@ export function buildFloorGraph(floor) {
 export function buildMultiFloorGraph(floors) {
   const nodes = new Map();
   const adj = new Map();
-  const stairIds = {};
+  const floorSub = {};
+  const floorStairs = {}; // floorId -> [{id, x, y}]
 
   for (const floor of floors) {
     const prefix = `${floor.id}::`;
-    const { stairId } = addFloorSubgraph(nodes, adj, floor, prefix);
-    stairIds[floor.id] = stairId;
+    floorSub[floor.id] = addFloorSubgraph(nodes, adj, floor, prefix);
+    floorStairs[floor.id] = (floor.entrances || [])
+      .filter((e) => e.type === "stair")
+      .map((e) => ({ id: prefix + e.id, x: e.x, y: e.y }));
   }
 
-  const addEdge = (a, b, w) => {
-    adj.get(a).push({ to: b, w });
-    adj.get(b).push({ to: a, w });
-  };
+  // 1층에는 EXIT로 표시된 계단이 없으므로, 위아래 층(지하1층·2층)의 계단 위치를
+  // 그대로 가져와 1층 그래프에도 가상 계단 노드로 추가한다.
+  const groundFloor = floors.find((f) => f.id === "1f");
+  if (groundFloor && (floorStairs["1f"] || []).length === 0) {
+    const prefix = "1f::";
+    const { addNode, addEdge, roomNodeId } = floorSub["1f"];
+    const neighborStairs = [...(floorStairs["b1"] || []), ...(floorStairs["2f"] || [])];
+    const merged = [];
+    for (const s of neighborStairs) {
+      if (!merged.some((m) => dist(m, s) < STAIR_MERGE_RADIUS)) merged.push(s);
+    }
+    const virtualStairs = merged.map((s, i) => {
+      const id = addNode(`virtual-stair-${i}`, s.x, s.y);
+      let bestGid = null;
+      let bestW = Infinity;
+      for (const room of groundFloor.rooms) {
+        const gid = roomNodeId.get(room.id);
+        const w = dist(nodes.get(id), nodes.get(gid));
+        if (w < bestW) {
+          bestW = w;
+          bestGid = gid;
+        }
+      }
+      if (bestGid) addEdge(id, bestGid);
+      return { id, x: s.x, y: s.y };
+    });
+    floorStairs["1f"] = virtualStairs;
+  }
+
+  // 인접한 두 층의 계단끼리, 가장 가까운 위치를 찾아 연결한다.
   for (let i = 0; i < floors.length - 1; i++) {
-    const a = stairIds[floors[i].id];
-    const b = stairIds[floors[i + 1].id];
-    if (a && b) addEdge(a, b, FLOOR_TRANSITION_COST);
+    const upperStairs = floorStairs[floors[i].id] || [];
+    const lowerStairs = floorStairs[floors[i + 1].id] || [];
+    for (const a of upperStairs) {
+      let best = null;
+      let bestW = Infinity;
+      for (const b of lowerStairs) {
+        const w = dist(a, b);
+        if (w < bestW) {
+          bestW = w;
+          best = b;
+        }
+      }
+      if (best) {
+        adj.get(a.id).push({ to: best.id, w: bestW + FLOOR_TRANSITION_COST });
+        adj.get(best.id).push({ to: a.id, w: bestW + FLOOR_TRANSITION_COST });
+      }
+    }
   }
 
   return { nodes, adj };

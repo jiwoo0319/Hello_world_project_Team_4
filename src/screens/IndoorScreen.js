@@ -107,7 +107,9 @@ export default function IndoorScreen({ onBack }) {
 
       {phase === PHASE_START && (
         <View style={styles.stepBanner}>
-          <Text style={styles.stepBannerText}>1단계 · 출발할 출입문을 선택하세요</Text>
+          <Text style={styles.stepBannerText}>
+            1단계 · 출발 위치를 선택하세요 (주황: 건물 출입문, 회색: 계단)
+          </Text>
         </View>
       )}
       {phase === PHASE_DEST && (
