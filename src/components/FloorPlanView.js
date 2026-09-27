@@ -19,26 +19,27 @@ export default function FloorPlanView({
     <View style={[styles.container, { aspectRatio: viewBoxWidth / viewBoxHeight }]}>
       <Image source={image} style={styles.image} resizeMode="contain" />
 
-      {rooms.map((room) => {
-        const isSelected = room.id === selectedRoomId;
-        return (
-          <TouchableOpacity
-            key={room.id}
-            onPress={() => onSelectRoom(room)}
-            style={[
-              styles.hotspot,
-              {
-                left: `${(room.x / viewBoxWidth) * 100}%`,
-                top: `${(room.y / viewBoxHeight) * 100}%`,
-                width: `${(room.width / viewBoxWidth) * 100}%`,
-                height: `${(room.height / viewBoxHeight) * 100}%`,
-              },
-              isSelected && styles.hotspotSelected,
-            ]}
-            activeOpacity={0.6}
-          />
-        );
-      })}
+      {onSelectRoom &&
+        rooms.map((room) => {
+          const isSelected = room.id === selectedRoomId;
+          return (
+            <TouchableOpacity
+              key={room.id}
+              onPress={() => onSelectRoom(room)}
+              style={[
+                styles.hotspot,
+                {
+                  left: `${(room.x / viewBoxWidth) * 100}%`,
+                  top: `${(room.y / viewBoxHeight) * 100}%`,
+                  width: `${(room.width / viewBoxWidth) * 100}%`,
+                  height: `${(room.height / viewBoxHeight) * 100}%`,
+                },
+                isSelected && styles.hotspotSelected,
+              ]}
+              activeOpacity={0.6}
+            />
+          );
+        })}
 
       {path && <PathOverlay points={path} viewBoxWidth={viewBoxWidth} viewBoxHeight={viewBoxHeight} />}
 

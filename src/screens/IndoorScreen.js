@@ -10,43 +10,84 @@ import {
 } from "react-native";
 import FloorPlanView from "../components/FloorPlanView";
 import { FLOORS } from "../data/floorplans";
-import { buildFloorGraph, shortestPath } from "../lib/indoorPath";
+import {
+  buildMultiFloorGraph,
+  shortestPath,
+  splitPathByFloor,
+  floorEntranceNodeId,
+  floorRoomNodeId,
+} from "../lib/indoorPath";
+
+const PHASE_START = "start"; // 출발 출입문 선택
+const PHASE_DEST = "dest"; // 목적지 방 선택
+const PHASE_ROUTE = "route"; // 경로 보기
 
 export default function IndoorScreen({ onBack }) {
-  const [selectedFloor, setSelectedFloor] = useState(FLOORS[1]); // 기본값: 1층
-  const [selectedRoom, setSelectedRoom] = useState(null);
-  const [selectedEntrance, setSelectedEntrance] = useState(null);
+  const [phase, setPhase] = useState(PHASE_START);
+  const [browseFloor, setBrowseFloor] = useState(FLOORS[1]); // 지금 고르는 중인 층 (기본 1층)
+  const [startFloorId, setStartFloorId] = useState(null);
+  const [startEntrance, setStartEntrance] = useState(null);
+  const [destFloorId, setDestFloorId] = useState(null);
+  const [destRoom, setDestRoom] = useState(null);
+  const [routeStep, setRouteStep] = useState(0);
   const [query, setQuery] = useState("");
 
   const matches = useMemo(() => {
-    if (!query.trim()) return [];
+    if (phase !== PHASE_DEST || !query.trim()) return [];
     const q = query.trim().toLowerCase();
-    return selectedFloor.rooms
+    return browseFloor.rooms
       .filter((r) => r.number.toLowerCase().includes(q))
       .slice(0, 8);
-  }, [query, selectedFloor]);
+  }, [query, browseFloor, phase]);
 
   const route = useMemo(() => {
-    if (!selectedRoom || !selectedEntrance) return null;
-    const graph = buildFloorGraph(selectedFloor);
-    return shortestPath(graph, selectedEntrance.id, selectedRoom.id);
-  }, [selectedFloor, selectedRoom, selectedEntrance]);
+    if (phase !== PHASE_ROUTE || !startFloorId || !startEntrance || !destFloorId || !destRoom) {
+      return null;
+    }
+    const graph = buildMultiFloorGraph(FLOORS);
+    const startId = floorEntranceNodeId(startFloorId, startEntrance.id);
+    const endId = floorRoomNodeId(destFloorId, destRoom.id);
+    const result = shortestPath(graph, startId, endId);
+    if (!result) return null;
+    return { segments: splitPathByFloor(result) };
+  }, [phase, startFloorId, startEntrance, destFloorId, destRoom]);
 
-  const selectFloor = (floor) => {
-    setSelectedFloor(floor);
-    setSelectedRoom(null);
-    setSelectedEntrance(null);
+  const selectBrowseFloor = (floor) => {
+    setBrowseFloor(floor);
     setQuery("");
   };
 
-  const selectRoom = (room) => {
-    setSelectedRoom(room);
+  const pickEntrance = (entrance) => {
+    setStartFloorId(browseFloor.id);
+    setStartEntrance(entrance);
+    setPhase(PHASE_DEST);
     setQuery("");
   };
 
-  const selectEntrance = (entrance) => {
-    setSelectedEntrance((prev) => (prev?.id === entrance.id ? null : entrance));
+  const pickRoom = (room) => {
+    setDestFloorId(browseFloor.id);
+    setDestRoom(room);
+    setQuery("");
+    setRouteStep(0);
+    setPhase(PHASE_ROUTE);
   };
+
+  const reset = () => {
+    setPhase(PHASE_START);
+    setStartFloorId(null);
+    setStartEntrance(null);
+    setDestFloorId(null);
+    setDestRoom(null);
+    setRouteStep(0);
+    setBrowseFloor(FLOORS[1]);
+    setQuery("");
+  };
+
+  const segments = route?.segments || [];
+  const currentSegment = segments[routeStep];
+  const currentSegmentFloor = currentSegment
+    ? FLOORS.find((f) => f.id === currentSegment.floorId)
+    : null;
 
   return (
     <View style={styles.container}>
@@ -55,104 +96,158 @@ export default function IndoorScreen({ onBack }) {
           <Text style={styles.backText}>← 지도로</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>5호관 내부 안내</Text>
-        <View style={{ width: 60 }} />
-      </View>
-
-      <View style={styles.floorTabs}>
-        {FLOORS.map((floor) => (
-          <TouchableOpacity
-            key={floor.id}
-            style={[
-              styles.floorTab,
-              selectedFloor.id === floor.id && styles.floorTabActive,
-            ]}
-            onPress={() => selectFloor(floor)}
-          >
-            <Text
-              style={[
-                styles.floorTabText,
-                selectedFloor.id === floor.id && styles.floorTabTextActive,
-              ]}
-            >
-              {floor.label}
-            </Text>
+        {phase !== PHASE_START ? (
+          <TouchableOpacity onPress={reset}>
+            <Text style={styles.resetText}>처음부터</Text>
           </TouchableOpacity>
-        ))}
-      </View>
-
-      <View style={styles.searchBox}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="호실 번호로 검색 (예: 417A)"
-          value={query}
-          onChangeText={setQuery}
-          autoCapitalize="characters"
-        />
-        {matches.length > 0 && (
-          <FlatList
-            style={styles.searchResults}
-            data={matches}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.searchResultRow}
-                onPress={() => selectRoom(item)}
-              >
-                <Text style={styles.searchResultText}>
-                  {item.zone} {item.number}
-                </Text>
-              </TouchableOpacity>
-            )}
-          />
+        ) : (
+          <View style={{ width: 60 }} />
         )}
       </View>
 
-      <ScrollView
-        style={styles.mapScroll}
-        maximumZoomScale={4}
-        minimumZoomScale={1}
-        pinchGestureEnabled
-        showsHorizontalScrollIndicator={false}
-        showsVerticalScrollIndicator={false}
-      >
-        <FloorPlanView
-          floor={selectedFloor}
-          selectedRoomId={selectedRoom?.id}
-          onSelectRoom={selectRoom}
-          selectedEntranceId={selectedEntrance?.id}
-          onSelectEntrance={selectedRoom ? selectEntrance : undefined}
-          path={route?.points}
-        />
-      </ScrollView>
-
-      {selectedRoom && !selectedEntrance && (
-        <View style={styles.hintBar}>
-          <Text style={styles.hintText}>
-            도면 위 노란 점(문) 중 출발할 출입문을 눌러주세요
+      {phase === PHASE_START && (
+        <View style={styles.stepBanner}>
+          <Text style={styles.stepBannerText}>1단계 · 출발할 출입문을 선택하세요</Text>
+        </View>
+      )}
+      {phase === PHASE_DEST && (
+        <View style={styles.stepBanner}>
+          <Text style={styles.stepBannerText}>
+            2단계 · {startEntrance?.label} ({FLOORS.find((f) => f.id === startFloorId)?.label})에서 출발 ·
+            목적지 방을 선택하세요
           </Text>
         </View>
       )}
 
-      {selectedRoom && (
-        <View style={styles.infoPanel}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.infoZone}>{selectedRoom.zone}</Text>
-            <Text style={styles.infoNumber}>{selectedRoom.label}호</Text>
-            {selectedEntrance && (
-              <Text style={styles.infoRoute}>
-                {selectedEntrance.label}에서 출발
-              </Text>
+      {phase !== PHASE_ROUTE && (
+        <>
+          <View style={styles.floorTabs}>
+            {FLOORS.map((floor) => (
+              <TouchableOpacity
+                key={floor.id}
+                style={[
+                  styles.floorTab,
+                  browseFloor.id === floor.id && styles.floorTabActive,
+                ]}
+                onPress={() => selectBrowseFloor(floor)}
+              >
+                <Text
+                  style={[
+                    styles.floorTabText,
+                    browseFloor.id === floor.id && styles.floorTabTextActive,
+                  ]}
+                >
+                  {floor.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {phase === PHASE_DEST && (
+            <View style={styles.searchBox}>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="호실 번호로 검색 (예: 417A)"
+                value={query}
+                onChangeText={setQuery}
+                autoCapitalize="characters"
+              />
+              {matches.length > 0 && (
+                <FlatList
+                  style={styles.searchResults}
+                  data={matches}
+                  keyExtractor={(item) => item.id}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={styles.searchResultRow}
+                      onPress={() => pickRoom(item)}
+                    >
+                      <Text style={styles.searchResultText}>
+                        {item.zone} {item.number}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                />
+              )}
+            </View>
+          )}
+
+          <ScrollView
+            style={styles.mapScroll}
+            maximumZoomScale={4}
+            minimumZoomScale={1}
+            pinchGestureEnabled
+            showsHorizontalScrollIndicator={false}
+            showsVerticalScrollIndicator={false}
+          >
+            <FloorPlanView
+              floor={browseFloor}
+              onSelectRoom={phase === PHASE_DEST ? pickRoom : undefined}
+              onSelectEntrance={phase === PHASE_START ? pickEntrance : undefined}
+            />
+          </ScrollView>
+        </>
+      )}
+
+      {phase === PHASE_ROUTE && (
+        <>
+          <ScrollView
+            style={styles.mapScroll}
+            maximumZoomScale={4}
+            minimumZoomScale={1}
+            pinchGestureEnabled
+            showsHorizontalScrollIndicator={false}
+            showsVerticalScrollIndicator={false}
+          >
+            {currentSegmentFloor && (
+              <FloorPlanView
+                floor={currentSegmentFloor}
+                path={currentSegment.points.length > 1 ? currentSegment.points : null}
+              />
+            )}
+          </ScrollView>
+
+          <View style={styles.routeBar}>
+            {!route ? (
+              <Text style={styles.routeErrorText}>경로를 찾지 못했습니다.</Text>
+            ) : (
+              <>
+                <Text style={styles.routeStepLabel}>
+                  {routeStep + 1} / {segments.length} 구간 · {currentSegmentFloor?.label}
+                </Text>
+                <Text style={styles.routeStepDesc}>
+                  {routeStep === 0 && `${startEntrance?.label}에서 출발`}
+                  {routeStep > 0 && routeStep < segments.length - 1 && "계단으로 이동 중 (통과)"}
+                  {routeStep === segments.length - 1 &&
+                    segments.length > 1 &&
+                    `${destRoom?.zone} ${destRoom?.label}호 도착`}
+                  {routeStep === 0 &&
+                    segments.length === 1 &&
+                    ` → ${destRoom?.zone} ${destRoom?.label}호`}
+                </Text>
+                <View style={styles.routeNavRow}>
+                  <TouchableOpacity
+                    style={[styles.routeNavButton, routeStep === 0 && styles.routeNavButtonDisabled]}
+                    onPress={() => setRouteStep((s) => Math.max(0, s - 1))}
+                    disabled={routeStep === 0}
+                  >
+                    <Text style={styles.routeNavButtonText}>이전 구간</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.routeNavButton,
+                      routeStep >= segments.length - 1 && styles.routeNavButtonDisabled,
+                    ]}
+                    onPress={() => setRouteStep((s) => Math.min(segments.length - 1, s + 1))}
+                    disabled={routeStep >= segments.length - 1}
+                  >
+                    <Text style={styles.routeNavButtonText}>다음 구간</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
             )}
           </View>
-          <TouchableOpacity
-            onPress={() => {
-              setSelectedRoom(null);
-              setSelectedEntrance(null);
-            }}
-          >
-            <Text style={styles.infoClose}>닫기</Text>
-          </TouchableOpacity>
-        </View>
+        </>
       )}
     </View>
   );
@@ -172,6 +267,13 @@ const styles = StyleSheet.create({
   },
   backText: { color: "#0b5fff", fontSize: 15, fontWeight: "600" },
   headerTitle: { fontSize: 16, fontWeight: "700", color: "#111" },
+  resetText: { color: "#e0332f", fontSize: 13, fontWeight: "600" },
+  stepBanner: {
+    backgroundColor: "#eaf1ff",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  stepBannerText: { fontSize: 13, color: "#0b5fff", fontWeight: "600" },
   floorTabs: {
     flexDirection: "row",
     paddingHorizontal: 12,
@@ -223,24 +325,23 @@ const styles = StyleSheet.create({
   },
   searchResultText: { fontSize: 14, color: "#222" },
   mapScroll: { flex: 1, backgroundColor: "#f3f5f1" },
-  infoPanel: {
-    flexDirection: "row",
-    alignItems: "center",
+  routeBar: {
     padding: 16,
     borderTopWidth: 1,
     borderTopColor: "#eee",
     backgroundColor: "#fff",
   },
-  infoZone: { fontSize: 13, color: "#666" },
-  infoNumber: { fontSize: 20, fontWeight: "800", color: "#0b5fff", marginTop: 2 },
-  infoRoute: { fontSize: 13, color: "#e0332f", marginTop: 4, fontWeight: "600" },
-  infoClose: { color: "#0b5fff", fontWeight: "600", fontSize: 14 },
-  hintBar: {
-    backgroundColor: "#fff8e6",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderTopWidth: 1,
-    borderTopColor: "#f0e0a0",
+  routeErrorText: { color: "#e0332f", fontWeight: "600" },
+  routeStepLabel: { fontSize: 13, color: "#666" },
+  routeStepDesc: { fontSize: 18, fontWeight: "800", color: "#0b5fff", marginTop: 2 },
+  routeNavRow: { flexDirection: "row", gap: 8, marginTop: 12 },
+  routeNavButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: "#0b5fff",
+    alignItems: "center",
   },
-  hintText: { fontSize: 13, color: "#8a6d1a", textAlign: "center" },
+  routeNavButtonDisabled: { backgroundColor: "#c7d6f5" },
+  routeNavButtonText: { color: "#fff", fontWeight: "700" },
 });
