@@ -112,6 +112,7 @@ function nearestZone(rooms, x, y) {
             ? `${e.zone} 계단 ${e.n}`
             : `${e.zone} 계단`,
       type,
+      zone: e.zone,
       x: e.x,
       y: e.y,
     }));

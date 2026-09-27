@@ -16,7 +16,9 @@ import {
   splitPathByFloor,
   floorEntranceNodeId,
   floorRoomNodeId,
+  FLOOR_ORDER,
 } from "../lib/indoorPath";
+import { buildStepTexts } from "../lib/directions";
 
 const PHASE_START = "start"; // 출발 출입문 선택
 const PHASE_DEST = "dest"; // 목적지 방 선택
@@ -88,6 +90,36 @@ export default function IndoorScreen({ onBack }) {
   const currentSegmentFloor = currentSegment
     ? FLOORS.find((f) => f.id === currentSegment.floorId)
     : null;
+
+  const stepTexts = useMemo(() => {
+    if (!currentSegment || !currentSegmentFloor) return [];
+
+    const isFirst = routeStep === 0;
+    const isLast = routeStep === segments.length - 1;
+
+    let startText;
+    if (isFirst) {
+      startText = `${startEntrance?.label}에서 출발합니다.`;
+    } else {
+      const prevIdx = FLOOR_ORDER.indexOf(segments[routeStep - 1].floorId);
+      const curIdx = FLOOR_ORDER.indexOf(currentSegment.floorId);
+      const dir = curIdx > prevIdx ? "올라와" : "내려와";
+      startText = `계단으로 ${dir} ${currentSegmentFloor.label}에 도착했습니다.`;
+    }
+
+    let endText;
+    if (isLast) {
+      endText = `${destRoom?.zone} ${destRoom?.label}호에 도착합니다.`;
+    } else {
+      const nextIdx = FLOOR_ORDER.indexOf(segments[routeStep + 1].floorId);
+      const curIdx = FLOOR_ORDER.indexOf(currentSegment.floorId);
+      const nextFloorLabel = FLOORS.find((f) => f.id === segments[routeStep + 1].floorId)?.label;
+      const dir = nextIdx > curIdx ? "올라가세요" : "내려가세요";
+      endText = `계단을 이용해 ${nextFloorLabel}(으)로 ${dir}.`;
+    }
+
+    return buildStepTexts(currentSegment, currentSegmentFloor, { startText, endText });
+  }, [currentSegment, currentSegmentFloor, routeStep, segments, startEntrance, destRoom]);
 
   return (
     <View style={styles.container}>
@@ -217,16 +249,16 @@ export default function IndoorScreen({ onBack }) {
                 <Text style={styles.routeStepLabel}>
                   {routeStep + 1} / {segments.length} 구간 · {currentSegmentFloor?.label}
                 </Text>
-                <Text style={styles.routeStepDesc}>
-                  {routeStep === 0 && `${startEntrance?.label}에서 출발`}
-                  {routeStep > 0 && routeStep < segments.length - 1 && "계단으로 이동 중 (통과)"}
-                  {routeStep === segments.length - 1 &&
-                    segments.length > 1 &&
-                    `${destRoom?.zone} ${destRoom?.label}호 도착`}
-                  {routeStep === 0 &&
-                    segments.length === 1 &&
-                    ` → ${destRoom?.zone} ${destRoom?.label}호`}
-                </Text>
+                <ScrollView style={styles.stepList} nestedScrollEnabled>
+                  {stepTexts.map((text, i) => (
+                    <View key={i} style={styles.stepRow}>
+                      <View style={styles.stepBadge}>
+                        <Text style={styles.stepBadgeText}>{i + 1}</Text>
+                      </View>
+                      <Text style={styles.stepText}>{text}</Text>
+                    </View>
+                  ))}
+                </ScrollView>
                 <View style={styles.routeNavRow}>
                   <TouchableOpacity
                     style={[styles.routeNavButton, routeStep === 0 && styles.routeNavButtonDisabled]}
@@ -343,7 +375,20 @@ const styles = StyleSheet.create({
   },
   routeErrorText: { color: "#e0332f", fontWeight: "600" },
   routeStepLabel: { fontSize: 13, color: "#666" },
-  routeStepDesc: { fontSize: 18, fontWeight: "800", color: "#0b5fff", marginTop: 2 },
+  stepList: { maxHeight: 160, marginTop: 6 },
+  stepRow: { flexDirection: "row", alignItems: "flex-start", marginBottom: 8 },
+  stepBadge: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#0b5fff",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 8,
+    marginTop: 1,
+  },
+  stepBadgeText: { color: "#fff", fontSize: 11, fontWeight: "700" },
+  stepText: { flex: 1, fontSize: 14, color: "#222", lineHeight: 20, fontWeight: "600" },
   routeNavRow: { flexDirection: "row", gap: 8, marginTop: 12 },
   routeNavButton: {
     flex: 1,

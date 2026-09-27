@@ -260,12 +260,14 @@ export function splitPathByFloor(result) {
   const segments = [];
   let current = null;
   for (let i = 0; i < result.ids.length; i++) {
-    const [floorId] = result.ids[i].split("::");
+    const [floorId, ...rest] = result.ids[i].split("::");
+    const localId = rest.join("::");
     const point = result.points[i];
     if (!current || current.floorId !== floorId) {
       if (current) segments.push(current);
-      current = { floorId, points: [] };
+      current = { floorId, points: [], ids: [] };
     }
+    current.ids.push(localId);
     current.points.push(point);
   }
   if (current) segments.push(current);

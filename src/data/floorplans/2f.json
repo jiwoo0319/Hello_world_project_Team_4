@@ -1521,6 +1521,7 @@
       "id": "entrance-2f-0",
       "label": "5북관 계단 1",
       "type": "stair",
+      "zone": "5북관",
       "x": 631,
       "y": 182
     },
@@ -1528,6 +1529,7 @@
       "id": "entrance-2f-1",
       "label": "5북관 계단 2",
       "type": "stair",
+      "zone": "5북관",
       "x": 1137,
       "y": 182
     },
@@ -1535,6 +1537,7 @@
       "id": "entrance-2f-2",
       "label": "5북관 계단 3",
       "type": "stair",
+      "zone": "5북관",
       "x": 1806,
       "y": 282
     },
@@ -1542,6 +1545,7 @@
       "id": "entrance-2f-3",
       "label": "5북관 계단 4",
       "type": "stair",
+      "zone": "5북관",
       "x": 219,
       "y": 283
     },
@@ -1549,6 +1553,7 @@
       "id": "entrance-2f-4",
       "label": "5서관 계단",
       "type": "stair",
+      "zone": "5서관",
       "x": 219,
       "y": 643
     },
@@ -1556,6 +1561,7 @@
       "id": "entrance-2f-5",
       "label": "5동관 계단 1",
       "type": "stair",
+      "zone": "5동관",
       "x": 1806,
       "y": 746
     },
@@ -1563,6 +1569,7 @@
       "id": "entrance-2f-6",
       "label": "5남관 계단 1",
       "type": "stair",
+      "zone": "5남관",
       "x": 219,
       "y": 1222
     },
@@ -1570,6 +1577,7 @@
       "id": "entrance-2f-7",
       "label": "5남관 계단 2",
       "type": "stair",
+      "zone": "5남관",
       "x": 619,
       "y": 1227
     },
@@ -1577,6 +1585,7 @@
       "id": "entrance-2f-8",
       "label": "5남관 계단 3",
       "type": "stair",
+      "zone": "5남관",
       "x": 1430,
       "y": 1227
     },
@@ -1584,6 +1593,7 @@
       "id": "entrance-2f-9",
       "label": "5동관 계단 2",
       "type": "stair",
+      "zone": "5동관",
       "x": 1909,
       "y": 1333
     }
